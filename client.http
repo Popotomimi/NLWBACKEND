@@ -1,5 +1,5 @@
 # Variables
-@baseUrl = http://localhost:3333
+@baseUrl = https://nlwbackend.onrender.com
 
 # Health check
 # @name health
@@ -37,9 +37,9 @@ GET {{baseUrl}}/rooms/{{roomId}}/questions
 
 # Create question
 # @name createQuestion
-POST {{baseUrl}}/rooms/6f05315b-1442-4bfa-af46-cf39d951f59e/questions
+POST https://nlwbackend.onrender.com/rooms/faa33778-1765-4be5-9547-7a10bae004aa/questions
 Content-Type: application/json
 
 {
-    "question": "O que é Angular e qual a diferença entre Java?"
+  "question": "Qual a diferença entre Angular e React?"
 }

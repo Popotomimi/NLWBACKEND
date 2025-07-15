@@ -22,42 +22,40 @@ export const CreateQuestionRoute: FastifyPluginCallbackZod = (app) => {
       const { roomId } = request.params;
       const { question } = request.body;
 
+      // Gerar embeddings da pergunta
       const embeddings = await generateEmbeddings(question);
 
-      const embeddingsLiteral = `'[${embeddings.join(",")}]'::vector`;
+      // Converter para formato PGVECTOR correto
+      const embeddingsSqlArray = sql.raw(`'[${embeddings.join(",")}]'::vector`);
 
+      // Buscar os chunks mais semelhantes
       const chunks = await db
         .select({
           id: schema.audioChunks.id,
           transcription: schema.audioChunks.transcription,
-          similarity: sql<number>`1 - (${
-            schema.audioChunks.embeddings
-          } <=> ${sql.raw(embeddingsLiteral)})`,
+          similarity: sql<number>`1 - (${schema.audioChunks.embeddings} <=> ${embeddingsSqlArray})`,
         })
         .from(schema.audioChunks)
         .where(
           and(
             eq(schema.audioChunks.roomId, roomId),
-            sql`1 - (${schema.audioChunks.embeddings} <=> ${sql.raw(
-              embeddingsLiteral
-            )}) > 0.7`
+            sql`1 - (${schema.audioChunks.embeddings} <=> ${embeddingsSqlArray}) > 0.7`
           )
         )
         .orderBy(
-          sql`(${schema.audioChunks.embeddings} <=> ${sql.raw(
-            embeddingsLiteral
-          )})`
+          sql`(${schema.audioChunks.embeddings} <=> ${embeddingsSqlArray})`
         )
         .limit(3);
 
       let answer: string | null = null;
 
+      // Gerar resposta caso existam chunks relevantes
       if (chunks.length > 0) {
         const transcriptions = chunks.map((chunk) => chunk.transcription);
-
         answer = await generareAnswer(question, transcriptions);
       }
 
+      // Inserir a nova pergunta
       const result = await db
         .insert(schema.questions)
         .values({
@@ -73,9 +71,10 @@ export const CreateQuestionRoute: FastifyPluginCallbackZod = (app) => {
         throw new Error("Failed to create new question");
       }
 
-      return reply
-        .status(201)
-        .send({ questionId: insertedQuestion.id, answer });
+      return reply.status(201).send({
+        questionId: insertedQuestion.id,
+        answer,
+      });
     }
   );
 };
