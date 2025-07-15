@@ -16,9 +16,10 @@ import { uploadAudioRoute } from "./http/routes/upload-audio.ts";
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
 app.register(fastifyCors, {
-  origin: "http://localhost:5173",
+  origin: [/localhost:5173$/, /render\.com$/],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 });
-
 app.register(fastifyMultipart);
 
 app.setSerializerCompiler(serializerCompiler);
